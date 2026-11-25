@@ -58,7 +58,9 @@ def _check_editable(relative_path: str) -> Path:
 
 
 def _git(*args: str) -> subprocess.CompletedProcess:
-    return subprocess.run(["git", *args], cwd=REPO, capture_output=True, text=True, timeout=120)
+    # check=False: callers inspect returncode; a failed git command is a result, not a crash.
+    return subprocess.run(["git", *args], cwd=REPO, capture_output=True, text=True,
+                          timeout=120, check=False)
 
 
 def _current_branch() -> str:
@@ -137,7 +139,7 @@ def read_file(path: str) -> dict:
         return {"status": "error", "message": f"No such file in {_repo_id()}: {path}"}
     except (PermissionError, UnicodeDecodeError, IsADirectoryError) as e:
         return {"status": "error", "message": str(e)}
-    numbered = "\n".join(f"{i:4}| {l}" for i, l in enumerate(lines[:MAX_READ_LINES], 1))
+    numbered = "\n".join(f"{i:4}| {line}" for i, line in enumerate(lines[:MAX_READ_LINES], 1))
     return {"status": "success", "path": path, "total_lines": len(lines), "content": numbered}
 
 
@@ -193,11 +195,14 @@ def run_tests() -> dict:
     except (FileNotFoundError, KeyError) as e:
         return {"status": "error", "message": f"No test_command configured: {e}"}
     try:
-        result = subprocess.run(command, cwd=REPO, capture_output=True, text=True, timeout=TEST_TIMEOUT_SECONDS)
+        # check=False: a failing test suite is the normal case this tool reports on.
+        result = subprocess.run(command, cwd=REPO, capture_output=True, text=True,
+                                timeout=TEST_TIMEOUT_SECONDS, check=False)
     except subprocess.TimeoutExpired:
         return {"status": "error", "message": f"Tests timed out after {TEST_TIMEOUT_SECONDS}s"}
     output = (result.stdout + result.stderr)[-4000:]
-    return {"status": "passed" if result.returncode == 0 else "failed", "exit_code": result.returncode, "output": output}
+    return {"status": "passed" if result.returncode == 0 else "failed",
+            "exit_code": result.returncode, "output": output}
 
 
 # ---------- git / PR ----------
@@ -215,7 +220,8 @@ def create_branch(name: str) -> dict:
     branch = BRANCH_PREFIX + slug
     base = os.getenv("BASE_BRANCH", "main")
     if _git("status", "--porcelain").stdout.strip():
-        return {"status": "error", "message": "Working tree has uncommitted changes; a human must clean it up first"}
+        return {"status": "error",
+                "message": "Working tree has uncommitted changes; a human must clean it up first"}
     _git("checkout", base)
     r = _git("checkout", "-b", branch)
     if r.returncode != 0:

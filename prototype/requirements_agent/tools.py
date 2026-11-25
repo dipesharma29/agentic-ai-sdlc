@@ -39,11 +39,11 @@ def read_meeting_transcript() -> dict:
         return {"status": "error", "message": f"Transcript not found at {path}"}
     lines = []
     for raw in path.read_text(encoding="utf-8").splitlines():
-        raw = raw.strip()
-        if not raw or raw == "WEBVTT" or "-->" in raw or re.fullmatch(r"[0-9a-f-]{36}(/\d+-\d+)?", raw):
+        stripped = raw.strip()
+        if (not stripped or stripped == "WEBVTT" or "-->" in stripped
+                or re.fullmatch(r"[0-9a-f-]{36}(/\d+-\d+)?", stripped)):
             continue
-        raw = re.sub(r"<v ([^>]*)>", r"\1: ", raw).replace("</v>", "")
-        lines.append(raw)
+        lines.append(re.sub(r"<v ([^>]*)>", r"\1: ", stripped).replace("</v>", ""))
     return {"status": "success", "transcript": "\n".join(lines)}
 
 
@@ -141,7 +141,8 @@ def _jira_request(method: str, path: str, body: dict | None = None) -> dict:
         base + path,
         method=method,
         data=json.dumps(body).encode() if body is not None else None,
-        headers={"Authorization": f"Basic {auth}", "Accept": "application/json", "Content-Type": "application/json"},
+        headers={"Authorization": f"Basic {auth}", "Accept": "application/json",
+                 "Content-Type": "application/json"},
     )
     with urllib.request.urlopen(req, timeout=30) as resp:
         return json.loads(resp.read() or b"{}")

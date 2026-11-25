@@ -1,0 +1,35 @@
+[tool.ruff]
+# Pinned here so the editor, the command line and CI all apply the same rules.
+# Without it, ruff picks up whatever configuration happens to sit above the repo.
+line-length = 110
+target-version = "py312"
+
+# Notebooks are demonstration material, read top to bottom by a person. Import
+# grouping and similar house style do not apply to them.
+extend-exclude = ["*.ipynb"]
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle
+    "F",    # pyflakes
+    "I",    # import order
+    "UP",   # outdated syntax
+    "B",    # likely bugs
+    "SIM",  # needless complexity
+    "PL",   # pylint subset
+]
+ignore = [
+    "PLR2004",  # a literal in a test assertion is clearer than a named constant
+    # Every tool returns a dict and never raises (see AGENTS.md), so each
+    # guardrail is an early return. Collapsing them would hide the refusals.
+    "PLR0911",
+]
+
+[tool.ruff.lint.isort]
+# Both packages are imported by bare name inside the container, where poc/ is
+# the working directory. Saying so keeps import order stable wherever ruff runs.
+known-first-party = ["fix_agent", "requirements_agent"]
+
+[tool.ruff.lint.per-file-ignores]
+# Test names describe the behaviour, so they run long.
+"poc/tests/*" = ["E501"]

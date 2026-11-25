@@ -32,7 +32,8 @@ def run(session_id, parts):
                 fc = p["functionCall"]
                 if fc["name"] == "adk_request_confirmation":
                     pending = fc
-                    print(f"\n>>> APPROVAL NEEDED: {json.dumps(fc['args'].get('originalFunctionCall', {}).get('args', {}))[:600]}")
+                    requested = fc["args"].get("originalFunctionCall", {}).get("args", {})
+                    print(f"\n>>> APPROVAL NEEDED: {json.dumps(requested)[:600]}")
                 else:
                     print(f"[tool call] {fc['name']}({json.dumps(fc.get('args', {}))[:200]})")
             elif p.get("functionResponse"):
