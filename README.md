@@ -1,5 +1,7 @@
 # Agentic AI SDLC: a GCP prototype
 
+[![CI](https://github.com/dipesharma29/agentic-ai-sdlc/actions/workflows/ci.yml/badge.svg)](https://github.com/dipesharma29/agentic-ai-sdlc/actions/workflows/ci.yml)
+
 A prototype for ITMC's AI DLC framework on Google Cloud, built with the Google Agent
 Development Kit.
 
