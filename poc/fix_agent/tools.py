@@ -1,8 +1,9 @@
 """Tools for the Fix Agent. Language-agnostic: everything repo-specific comes from
-the target repo's .agent.json (test command + protected paths).
+the target repo's .agent.json (test command, protected paths, optional editable paths).
 
 Guardrails are enforced here in code, not in the prompt:
 - every path must stay inside the target repo;
+- if editable_paths is set, only files under those folders can be changed;
 - protected paths (tests, config, .git) can't be edited;
 - edits are exact find-and-replace (must match exactly once);
 - the only command that can run is the repo's test_command (no shell);
@@ -42,7 +43,11 @@ def _inside_repo(relative_path: str) -> Path:
 def _check_editable(relative_path: str) -> Path:
     target = _inside_repo(relative_path)
     rel = target.relative_to(REPO).as_posix()
-    for protected in _config().get("protected_paths", []) + [".git/"]:
+    config = _config()
+    editable = [p.rstrip("/") for p in config.get("editable_paths", [])]  # optional allow-list
+    if editable and not any(e in ("", ".") or rel == e or rel.startswith(e + "/") for e in editable):
+        raise PermissionError(f"'{rel}' is outside the editable paths {editable}")
+    for protected in config.get("protected_paths", []) + [".git/"]:
         p = protected.rstrip("/")
         if rel == p or rel.startswith(p + "/"):
             raise PermissionError(f"'{rel}' is protected and can't be changed by the agent")

@@ -4,8 +4,7 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ..:/app                                   # project: agent code + workspace/agent-poc-sandbox
-      - ${APPDATA}/gcloud:/root/.config/gcloud:ro # Google credentials (gcloud auth application-default login)
+      - ..:/app   # project; the service-account key is at poc/secrets/ (git-ignored)
     env_file:
       - ./fix_agent/.env
     environment:

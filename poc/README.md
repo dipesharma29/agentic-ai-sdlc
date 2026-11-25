@@ -7,9 +7,16 @@ Design: [../docs/POC_Fix_Agent_Design.md](../docs/POC_Fix_Agent_Design.md)
 | `fix_agent/` | ADK agent (`agent.py`) + tools with guardrails (`tools.py`) |
 | `sample_site/` | Template for the sandbox target repo (simple HTML site + tests + `.agent.json`) |
 | `Dockerfile`, `docker-compose.yml` | Runs ADK in Linux on port 8000 |
-| `workspace/agent-poc-sandbox/` | Local Git repo the agent works on (git-ignored; recreate from `sample_site/`) |
+| `call_agent.py` | Sends a task to the agent over ADK's REST API; approves or rejects the commit/PR |
+| `workspace/agentic-ai-sdlc/` | Separate clone of this repo that the agent works in (git-ignored) |
 
-## Planted demo issues (kept here, not in the sandbox, so the agent can't read the answer)
+## Target repo
+For now the agent works on **this repo** and opens PRs here. The root `.agent.json` limits it:
+it can edit only `poc/sample_site/` (not its tests), and runs only the sample site's tests.
+Later, point `TARGET_REPO`/`GITHUB_REPO` at the real project and give that repo its own `.agent.json`.
+
+## Planted demo issues in `sample_site/`
+The agent can read the whole repo, including this file. That's acceptable for the demo since each task names the problem anyway.
 1. **Broken link:** `index.html` links to `abuot.html`. The link test fails.
    Task: *"The About link on the home page is broken. Fix it."*
 2. **Email field:** the contact form's email input is `type="text"` and not required. No test covers it.
@@ -21,17 +28,27 @@ All 9 tools passed a simulated run in Docker:
 - the fix took the tests from failed to passed;
 - the commit happened locally (no GitHub token yet).
 
-## Run (after billing + Vertex AI API)
+## Run
+1. Copy `fix_agent/.env.example` to `fix_agent/.env` and add your own `GITHUB_TOKEN`.
+2. Google access: put your key for service account `fix-agent@ai-sdlc-515307.iam.gserviceaccount.com`
+   (role: Vertex AI User) at `poc/secrets/fix-agent-key.json`. The folder is git-ignored. Get the key
+   from the project owner; never commit or paste it anywhere.
+3. Clone the target repo for the agent and start it (from `poc/`):
 ```powershell
-gcloud auth application-default login
+git clone https://github.com/dipesharma29/agentic-ai-sdlc.git workspace\agentic-ai-sdlc
 ```
 ```powershell
-cd poc; docker compose up --build
+docker compose up --build
 ```
 - Chat UI: http://localhost:8000 → pick `fix_agent`.
-- API: create a session, then `POST /run` with the task (exact calls to be added after the first live run).
-
-## Reset the sandbox for a fresh demo
+- API (from `poc/`):
 ```powershell
-Remove-Item -Recurse -Force workspace\agent-poc-sandbox; Copy-Item -Recurse sample_site workspace\agent-poc-sandbox; cd workspace\agent-poc-sandbox; git init -b main; git add -A; git commit -m "Sample site"
+python call_agent.py "The About link on the home page is broken. Fix it."
 ```
+```powershell
+python call_agent.py --approve <session_id>
+```
+Under the hood: `POST /apps/fix_agent/users/<user>/sessions/<id>` creates a session, `POST /run`
+sends the task, and approval is a `functionResponse` to `adk_request_confirmation` with `{"confirmed": true}`.
+
+Restart the container after editing `.env` (`docker compose up -d --force-recreate`).
