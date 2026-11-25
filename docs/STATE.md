@@ -1,9 +1,9 @@
-# STATE
+# Project state
 
-**Last updated:** 25 Nov 2026
+**Last updated:** 25 November 2026
 
-What is actually true right now. Where something is unverified, it says so.
-Read this before resuming work; trust it over the READMEs.
+What is true right now. Where something is unproven, this file says so.
+Read it before resuming work, and trust it over the READMEs.
 
 ---
 
@@ -11,138 +11,134 @@ Read this before resuming work; trust it over the READMEs.
 
 | | |
 |---|---|
-| Active line | **Fix Agent** — `poc/` |
+| Active line of work | Fix Agent — `poc/` |
 | Parked | Requirements Agent — `prototype/` |
-| Deadline | MVP in ~20 days from 25 Nov 2026 (Prachi) |
-| Blocking | Nothing external. Docker Desktop must be running |
-| Outstanding claim | **Closed 25 Nov** — a model-driven run went end to end and merged as PR #1 |
+| Target date | MVP approximately 20 days from 25 November 2026 |
+| External blockers | None. Docker Desktop must be running to use the local chat UI |
+| End-to-end run | Done. A plain-language task reached a reviewed, merged pull request |
 
 ---
 
-## Verified by running it, 25 Nov 2026
+## Verified by running it
+
+Each row below was checked by executing something, not by reading the code.
 
 | Check | Result |
 |---|---|
-| Service-account key authenticates | ✅ Google issued an access token |
-| Vertex AI reachable | ✅ `gemini-3.5-flash-lite`, location `global`, returned a completion (7 in / 1 out) |
-| GitHub token | ✅ authenticates as `dipesharma29`; push + admin on `dipesharma29/agentic-ai-sdlc`, so it can branch and open PRs |
-| Sandbox test command | ✅ runs: 3 tests, **1 failure** — the planted `abuot.html` typo. That failure is correct and must stay |
-| Tool guardrails | ✅ traversal refused, edit-before-branch refused, protected paths refused, paths outside `editable_paths` refused |
-| `poc/fix_agent/tools.py` | ✅ imports on the standard library alone |
-| `poc/docker-compose.yml` | ✅ valid |
-| Docker | installed (29.7.2, compose v5.4.0) — **daemon was not running** at time of check |
+| Service-account key | Authenticates; Google issues an access token |
+| Vertex AI | `gemini-3.5-flash-lite`, location `global`, returned a completion |
+| GitHub token | Authenticates; has push access, so the agent can branch and open pull requests |
+| Guardrail suite | 34 tests, all passing — `python -m unittest discover -s poc/tests -q` |
+| Lint | Clean — `ruff check .` |
+| Sample-site suite | 4 tests, 1 failure. The failure is the planted demo bug and is meant to be there |
+| `poc/fix_agent/tools.py` | Imports on the standard library alone, with no ADK present |
+| `poc/docker-compose.yml` | Valid |
 
-Earlier versions of the README said billing was not linked and Gemini calls would not work.
-**That was true then and is false now**; the call above is the evidence.
+An earlier version of the README said billing was not linked and that model calls
+would fail. That was true when written and is no longer true; the Vertex AI call
+above is the evidence.
 
 ---
 
-## Configuration, and where it must live
+## Configuration, and where it has to live
 
 | What | Where | Notes |
 |---|---|---|
-| Agent settings | `poc/fix_agent/.env` | **Only** place `docker-compose.yml` reads. A `.env` at the repo root is ignored by everything |
-| GCP key | `poc/secrets/fix-agent-key.json` | git-ignored twice over (`poc/secrets/`, `*-key.json`) |
-| Repo the agent edits | `poc/workspace/agentic-ai-sdlc/` | A separate clone, git-ignored. Not this working tree |
-| GCP project | `ai-sdlc-515307` | service account `fix-agent@ai-sdlc-515307.iam.gserviceaccount.com`, role Vertex AI User |
-| Jira | project **KAN** on `itmcsystems-team-r6zdxryt.atlassian.net` | KAN-4 epic; KAN-5/6/7 history; KAN-8 agent input. Not wired into the Fix Agent |
+| Agent settings | `poc/fix_agent/.env` | The only location `docker-compose.yml` reads. A `.env` at the repository root is ignored by everything |
+| Service-account key | `poc/secrets/fix-agent-key.json` | Git-ignored twice over, by folder and by `*-key.json` |
+| Repository the agent edits | `poc/workspace/agentic-ai-sdlc/` | A separate clone, git-ignored. Not this working tree |
+| GCP project | `ai-sdlc-515307` | Service account `fix-agent@ai-sdlc-515307.iam.gserviceaccount.com`, role Vertex AI User |
 
 ---
 
-## Built
+## What is built
 
 **Fix Agent** — `poc/fix_agent/`
 
-- `agent.py`: one ADK `Agent`, 9 tools, no sub-agents. `commit_and_open_pr` is wrapped in
-  `FunctionTool(..., require_confirmation=True)`, so ADK pauses for a human.
-- `tools.py`: the 9 tools and every guardrail, in code. Standard library only.
-- `poc/call_agent.py`: drives it over ADK's REST API, including the approval round trip.
-- `poc/sample_site/`: the sandbox target — small HTML site, 3 tests, two planted issues.
-- Docker: `python:3.12-slim` + git, `adk web` on :8000, ADK pinned to 2.15.0.
-
-**Not built:** any test suite for the agent's own tools. The 25 Nov simulated run in Docker
-was done by hand, not by a suite that can be re-run.
-
----
-
-## Not proven
-
-1. **Only one task, one language, one run.** A single success is not a measurement.
-2. **The second planted task was never attempted** — the contact form's email field, which
-   has no test and would require the agent to write one.
-3. **Scope control is unproven.** The one real run fixed more than it was asked to.
-4. **`search_code` reads every file in the repo** on each call. Fine for the 30-file
-   sandbox; untested on anything large.
-5. **Only one language proven.** The design claims language-agnosticism and the mechanism
-   supports it, but only the Python/unittest sandbox has been run.
+- `agent.py`: one ADK agent with nine tools and no sub-agents. `commit_and_open_pr`
+  is wrapped in `FunctionTool(..., require_confirmation=True)`, so the framework
+  pauses for a human before anything is pushed.
+- `tools.py`: the nine tools and every guardrail, enforced in code. Standard
+  library only, so the container needs nothing beyond ADK itself.
+- `poc/tests/test_guardrails.py`: 34 tests, each of which attempts something the
+  agent must not be able to do and asserts the refusal — path traversal, editing
+  outside the allowed paths, touching protected files, editing without a branch,
+  ambiguous replacements, and running anything other than the configured test
+  command.
+- `poc/call_agent.py`: drives the agent over ADK's REST API, including the
+  approval round trip.
+- `poc/sample_site/`: the practice target. A small HTML site with its own tests.
+- `poc/notebooks/fix_agent_colab.ipynb`: the same demonstration in Google Colab,
+  with no local install.
+- Docker: `python:3.12-slim` plus git, serving ADK on port 8000.
+- CI: `.github/workflows/ci.yml` runs lint and the guardrail suite on every push
+  and pull request.
 
 ---
 
-## Fixed on 25 Nov, worth knowing
+## What is not proven
 
-Found by reading the code and verified by running it:
-
-- `call_agent.py` raised `IndexError` when run with no arguments; it now prints usage.
-- `tools.py` defaulted `TARGET_REPO` to `/app/poc/workspace/agent-poc-sandbox`, a path that
-  no longer exists anywhere. Now matches `.env.example` and compose.
-- `commit_and_open_pr` called the GitHub PR API without a try/except — an HTTP error would
-  escape as an exception instead of the `{"status": "error"}` dict every other tool returns,
-  after the branch was already pushed. It now reports `pushed: True` with the reason, so the
-  work is not lost and a human can finish by hand.
-- `prototype/requirements.txt` pinned nothing; it now matches the POC's `google-adk==2.15.0`.
-- Added `.gitattributes` (`eol=lf`). The agent commits from a Linux container onto a Windows
-  checkout; without it every agent PR shows whole files as changed and buries the real diff.
+1. **One task, one language, one run.** A single success is not a measurement.
+2. **Scope control.** The one live run fixed more than it was asked to; see below.
+3. **Only Python and `unittest` have been exercised.** The design is
+   language-agnostic and the mechanism supports it, but no second language has
+   been run.
+4. **`search_code` reads every file in the repository on each call.** Fine for a
+   thirty-file sandbox, untested on anything large.
+5. **The Colab notebook has not been run to completion.** Every code cell
+   compiles and the ADK call shapes were checked against version 2.15.0, but the
+   notebook has not yet been taken through a full run in Colab by a second person.
 
 ---
 
-## First end-to-end run — 25 Nov 2026
+## The first end-to-end run
 
-Task: *"The about page has a malformed closing tag. Find it and fix it."* A `</htmll>` typo
-was planted in `about.html`, committed and pushed, and pulled into the clone.
+Task: *"The about page has a malformed closing tag. Find it and fix it."* The typo
+was planted, committed, pushed, and pulled into the agent's clone.
 
-The agent branched `agent/fix-about-page-malformed-tag`, found it, fixed it, took the suite
-from 2 failures to 0, paused for approval, and opened
-[PR #1](https://github.com/dipesharma29/agentic-ai-sdlc/pull/1), since merged.
+The agent created `agent/fix-about-page-malformed-tag`, located the typo, fixed it,
+took the suite from two failures to none, paused for approval, and opened
+[pull request #1](https://github.com/dipesharma29/agentic-ai-sdlc/pull/1), since merged.
 
-**It also fixed a bug nobody asked for.** The diff changed two files: `about.html`
-(`</htmll>` → `</html>`, the task) and `index.html` (`abuot.html` → `about.html`, the
-pre-existing planted link). Both fixes are correct and the agent's report was accurate, but
-the scope was wider than the task.
+**It also fixed a bug nobody asked for.** The diff changed two files: `about.html`,
+which was the task, and `index.html`, which carried a separate broken link. Both
+changes were correct and the agent's report was accurate — only the diff showed
+that the scope was wider than the request.
 
-The cause is a tension in its instruction: *"Change what the task needs, nothing unrelated"*
-against *"run_tests. On failure, diagnose from the output and fix."* With an unrelated
-failure already in the baseline, the agent cannot tell its job from "make the suite green".
-Worth deciding deliberately — see [TODO.md](TODO.md).
+The cause is a tension in the agent's own instruction: *"change what the task needs,
+nothing unrelated"* against *"run the tests; on failure, diagnose and fix"*. When an
+unrelated failure is already in the baseline, those two sentences disagree, and the
+agent cannot tell its job from "make the suite green". This needs a deliberate
+decision rather than a reworded prompt — see [TODO.md](TODO.md).
 
-**Both originally planted sandbox issues are now fixed**, so the suite is green (4 tests,
-OK) and any further run needs a freshly planted bug. See
-[TESTING_THE_AGENT.md](TESTING_THE_AGENT.md).
+---
 
-## The trap this setup has
+## A trap worth knowing about
 
-**The agent does not see your working tree.** It reads `TARGET_REPO`, a separate clone at
-`poc/workspace/agentic-ai-sdlc/`. On 25 Nov a typo was planted in
-`poc/sample_site/about.html` in the working tree and the agent correctly reported no such
-problem -- it was reading a different copy of that file, at commit `dd04234`.
+**The agent does not see your working tree.** It reads `TARGET_REPO`, a separate
+clone at `poc/workspace/agentic-ai-sdlc/`. A bug edited but not committed exists on
+no branch and in no clone, so the agent correctly reports that there is no such
+problem — it is reading a different copy of the file.
 
-Two things follow, and both bit at once:
+Two consequences:
 
-1. **A bug must be committed and present in the clone before the agent can see it.** An
-   uncommitted edit exists on no branch and in no clone.
-2. **Pick a bug the tests can catch.** `</htmll>` is invisible to the sandbox suite, so even
-   a correct fix would prove nothing -- `run_tests` is how the agent verifies itself.
+1. A bug has to be committed and pulled into the clone before the agent can see it.
+2. A test has to catch the bug, because `run_tests` is how the agent verifies itself.
+   A bug no test sees means the agent is guessing.
 
-Fixed so it cannot happen silently again: `search_code` with no matches and `read_file` on a
-missing file now report the checkout path and commit, and the agent's instruction tells it to
-say so when it concludes something is not there.
+This can no longer fail silently: `search_code` with no matches and `read_file` on a
+missing file both report which checkout and commit they looked at.
+
+---
 
 ## Parked: Requirements Agent — `prototype/`
 
-Turns a vague request or meeting transcript, plus the spring-petclinic Java code, into an
-approved user story. 6 tools, including Jira history search and story save.
+Turns a vague request or a meeting transcript, together with the spring-petclinic
+Java code, into an approved user story. Six tools, including Jira history search.
 
-Done: agent code (local code search, not RAG), Docker, Jira sample tickets, PetClinic fork,
-JDK 21. Not done: RAG comparison, Agent Engine / Cloud Run deployment, its own Jira token.
-Model calls are no longer blocked, but it has not been run against Vertex.
+Built: the agent and its tools (local keyword search rather than RAG), Docker, Jira
+sample tickets, the PetClinic fork, JDK 21. Not built: a RAG comparison, deployment
+to Agent Engine or Cloud Run, and its own Jira credentials. Model calls are no longer
+blocked, but it has not been run against Vertex AI.
 
-Do not extend it while the Fix Agent is the active line.
+Do not extend it while the Fix Agent is the active line of work.

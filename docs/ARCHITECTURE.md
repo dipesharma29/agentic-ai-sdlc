@@ -18,7 +18,7 @@ For current status see [STATE.md](STATE.md); for working rules see [AGENTS.md](.
                           │
          branch agent/* → edit → run tests → show diff
                           │
-                    ⏸ HUMAN CONFIRMS
+                   [ HUMAN CONFIRMS ]
                           │
                           ▼
               push + open PR ──► a human reviews and merges
@@ -74,6 +74,11 @@ The model chooses *what* to do. It cannot widen *what is possible*. Five limits,
 `subprocess.run` — a list, so no shell, so nothing to inject into. It is the only command
 the agent can cause to run.
 
+Each of those six is covered by `poc/tests/test_guardrails.py`, which attempts the
+forbidden action and asserts the refusal. That matters more than it sounds: a guardrail
+is only load-bearing while it still works, and reading the code is not evidence that it
+does. The suite runs in CI on every push.
+
 ### The human gate
 
 `commit_and_open_pr` is wrapped in `FunctionTool(..., require_confirmation=True)`. ADK
@@ -91,9 +96,10 @@ The tools know nothing about any language. Each target repo carries:
 
 ```json
 {
-  "test_command": ["python", "-m", "unittest", "discover", "-s", "tests", "-q"],
+  "test_command": ["python", "-m", "unittest", "discover", "-s", "poc/sample_site/tests", "-q"],
   "editable_paths": ["poc/sample_site/"],
-  "protected_paths": [".agent.json", "tests/", ".github/", ".git/"]
+  "protected_paths": [".agent.json", "poc/sample_site/.agent.json",
+                      "poc/sample_site/tests/", ".github/", ".git/"]
 }
 ```
 
@@ -145,15 +151,18 @@ poc/
   fix_agent/agent.py     the ADK agent: model, instruction, tool list, human gate
   fix_agent/tools.py     the 9 tools and every guardrail. Stdlib only
   fix_agent/.env         settings — the only file compose reads (git-ignored)
-  sample_site/           sandbox target: HTML, CSS, 3 tests, planted issues
+  tests/                 guardrail tests: try the attack, assert the refusal
+  sample_site/           practice target: HTML, CSS, its own tests
+  notebooks/             the same demonstration in Google Colab
   secrets/               service-account key (git-ignored)
   workspace/             the clone the agent edits (git-ignored)
   call_agent.py          REST client: send a task, approve or reject
   Dockerfile             python:3.12-slim + git + ADK
   docker-compose.yml     mounts the repo at /app, reads fix_agent/.env
-docs/POC_Fix_Agent_Design.md   the design this was built from
+.github/workflows/ci.yml       lint and the guardrail suite
+pyproject.toml                 lint configuration
+docs/POC_Fix_Agent_Design.md   the design record this was built from
 prototype/               PARKED: the Requirements Agent
-notes/                   GCP service notes
 ```
 
 ---

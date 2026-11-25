@@ -6,7 +6,12 @@ workspace/
 .adk/
 poc/workspace/
 
-# Private material (stays on Dipesh's machine only)
+# Internal working notes: kept locally, not shared with the repo
+AI_DLC_Understanding_and_Assessment.md
+Prototype_Questions.md
+notes/
+
+# Private material: decks, transcripts, recordings
 sources/
 prototype/inputs/*.vtt
 

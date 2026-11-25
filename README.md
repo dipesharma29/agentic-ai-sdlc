@@ -1,142 +1,149 @@
-# Agentic AI SDLC (AI DLC): GCP Prototype
+# Agentic AI SDLC: a GCP prototype
 
-A learning prototype for ITMC's AI DLC framework on Google Cloud, built with Google ADK.
+A prototype for ITMC's AI DLC framework on Google Cloud, built with the Google Agent
+Development Kit.
 
-**Current line of work: the Fix Agent.** You send a plain-language task over HTTP; one agent
-finds the code in a target repo, changes it, runs that repo's own tests, and opens a pull
-request for a human to review. It can never merge. See
-[`docs/POC_Fix_Agent_Design.md`](docs/POC_Fix_Agent_Design.md) and [`poc/README.md`](poc/README.md).
+**Current line of work: the Fix Agent.** You send a plain-language task; one agent
+finds the code in a target repository, changes it, runs that repository's own tests,
+and opens a pull request for a human to review. It cannot merge.
 
-The **Requirements Agent** (a vague request or meeting transcript becomes an approved user
-story) came first and is **parked** — see [Parked: Requirements Agent](#parked-requirements-agent).
+The **Requirements Agent** — turning a vague request or a meeting transcript into an
+approved user story — came first and is now parked. See
+[Parked: Requirements Agent](#parked-requirements-agent).
 
-**Resuming work, or an AI agent reading this?** Start with [STATE.md](docs/STATE.md) — what is
-true right now — then [AGENTS.md](AGENTS.md) for how to work here.
+**Picking the work up again?** Start with [docs/STATE.md](docs/STATE.md), which says
+what is true right now, then [AGENTS.md](AGENTS.md) for how to work in this repository.
 
-## Folder map
-
-Paths marked *local only* are git-ignored: they will not be in a fresh clone, and you create
-them yourself.
-
-| Path | What |
-|---|---|
-| [`docs/STATE.md`](docs/STATE.md) | What is built, what is verified, what is not. **Read first** |
-| [`AGENTS.md`](AGENTS.md) | Rules and commands for anyone (human or AI) working on this repo |
-| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | How the Fix Agent works and why it is shaped that way |
-| [`docs/TODO.md`](docs/TODO.md) | What is next, in order |
-| [`docs/TESTING_THE_AGENT.md`](docs/TESTING_THE_AGENT.md) | How to plant a bug and test the agent yourself |
-| [`poc/notebooks/fix_agent_colab.ipynb`](poc/notebooks/fix_agent_colab.ipynb) | Run the whole demo in Google Colab — no install, no Docker |
-| `poc/` | **The Fix Agent.** Agent, tools, sandbox target, Docker, REST client |
-| `poc/fix_agent/` | `agent.py` and `tools.py` — 9 tools behind guardrails |
-| `poc/sample_site/` | The sandbox the agent is allowed to edit: small HTML site + tests |
-| `poc/call_agent.py` | Sends a task over ADK's REST API; approves or rejects the PR |
-| `poc/workspace/agentic-ai-sdlc/` | *local only* — the clone the agent actually works in |
-| `poc/secrets/` | *local only* — the service-account key |
-| `docs/POC_Fix_Agent_Design.md` | Why the POC is shaped this way |
-| `.agent.json` | Per-repo rules: how to test, what may be edited, what is protected |
-| `AI_DLC_Understanding_and_Assessment.md` | Assessment of the ChatGPT conversation and the deck |
-| `Prototype_Questions.md` | Scoping questions, decisions and open items |
-| `notes/GCP_Services_Notes.md` | What each GCP service is, how we use it, cost watch-points |
-| `prototype/requirements_agent/` | Parked: the Requirements Agent and its tools |
-| `prototype/inputs/` | *local only* — meeting transcript used as input |
-| `prototype/output/stories/` | *local only* — approved stories when Jira isn't configured |
-| `sources/` | *local only* — original deck, conversation export, transcript |
-| `workspace/spring-petclinic/` | *local only* — clone of the `dipesharma29/spring-petclinic` fork |
+---
 
 ## How the Fix Agent stays safe
 
-Four things, and none of them depend on the model behaving:
+Four limits, none of which depends on the model behaving well:
 
-- **`.agent.json` decides what it may touch.** The root one lets the agent edit only
-  `poc/sample_site/`, and protects `.agent.json`, the sample site's `tests/`, `.github/` and
-  `.git/`. The agent cannot pass a task by rewriting the test that was failing.
-- **The same file decides how to test.** `test_command` is the only command it can run, so
-  the agent knows nothing about Python, Java or Node — point it at another repo and that
-  repo's file tells it what to do.
-- **Edits must quote the existing text exactly**, and are refused if the text appears more
-  than once.
-- **A human confirms before anything leaves the machine.** `commit_and_open_pr` is wrapped in
-  `FunctionTool(..., require_confirmation=True)`, so ADK pauses and waits.
+- **`.agent.json` decides what the agent may touch.** The root configuration lets it
+  edit only `poc/sample_site/`, and protects `.agent.json` itself, the sample site's
+  tests, `.github/` and `.git/`. It cannot pass a task by rewriting the test that was
+  failing.
+- **The same file decides how to test.** `test_command` is the only command the agent
+  can run, with no shell. The agent itself knows nothing about Python, Java or Node —
+  point it at another repository and that repository's file tells it what to do.
+- **Edits must quote the existing text exactly**, and are refused if the text appears
+  more than once. An ambiguous replacement is a guess.
+- **A human confirms before anything leaves the machine.** `commit_and_open_pr` is
+  wrapped in `FunctionTool(..., require_confirmation=True)`, so the framework pauses
+  and waits.
 
-## Where things live
+Each of those is enforced in `poc/fix_agent/tools.py` and covered by a test in
+`poc/tests/test_guardrails.py` that attempts the action and asserts the refusal.
 
-- **GCP project:** `ai-sdlc-515307`. **Working as of 25 Nov 2026** — verified by an actual
-  call, not assumed: the service-account key authenticates, the Vertex AI API answers, and
-  `gemini-3.5-flash-lite` at location `global` returned a completion. The billing blocker
-  noted in earlier versions of this file is cleared.
-- **Service account:** `fix-agent@ai-sdlc-515307.iam.gserviceaccount.com` (role: Vertex AI
-  User). Its key goes at `poc/secrets/fix-agent-key.json`, which is git-ignored. Get it from
-  the project owner; never commit or paste it.
-- **Jira:** project **KAN** on `itmcsystems-team-r6zdxryt.atlassian.net`
-  - Epic KAN-4: the prototype epic.
-  - KAN-5, KAN-6, KAN-7: made-up past tickets (`petclinic-history`).
-  - KAN-8: the vague request the Requirements Agent turns into a story (`agent-input`).
+```powershell
+python -m unittest discover -s poc/tests -q
+```
 
-## Run the Fix Agent
+---
 
-ADK runs **inside Docker**. On Dipesh's laptop, Windows Smart App Control blocks the compiled
-Python packages ADK needs; Linux containers are not affected.
+## Where things are
 
-Full instructions, including the approval round trip, are in [`poc/README.md`](poc/README.md).
-The short version, from `poc/`:
+| Path | What |
+|---|---|
+| [`docs/STATE.md`](docs/STATE.md) | What is built, what is verified, what is not. Read first |
+| [`AGENTS.md`](AGENTS.md) | Rules and commands for anyone, human or AI, working here |
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | How the Fix Agent works, and why it is shaped that way |
+| [`docs/TODO.md`](docs/TODO.md) | What is next, in order |
+| [`docs/TESTING_THE_AGENT.md`](docs/TESTING_THE_AGENT.md) | How to plant a bug and test the agent yourself |
+| [`docs/POC_Fix_Agent_Design.md`](docs/POC_Fix_Agent_Design.md) | The design record, written before the build |
+| [`poc/`](poc/README.md) | The Fix Agent: agent, tools, guardrail tests, practice target, Docker, REST client |
+| `poc/fix_agent/` | `agent.py` and `tools.py` — nine tools behind the guardrails |
+| `poc/tests/` | The guardrail tests |
+| `poc/sample_site/` | The practice target the agent is allowed to edit |
+| `poc/notebooks/` | The same demonstration in Google Colab, with no local install |
+| `.agent.json` | Per-repository rules: how to test, what may be edited, what is protected |
+| `.github/workflows/ci.yml` | Lint and guardrail tests on every push and pull request |
+| `prototype/` | Parked: the Requirements Agent |
+
+Some paths are git-ignored and will not be in a fresh clone: `poc/workspace/` (the
+clone the agent works in), `poc/secrets/` (the service-account key), and `sources/`.
+
+---
+
+## Running it
+
+ADK runs inside Docker. On the development machine used here, Windows Smart App
+Control blocks the compiled Python packages ADK depends on; Linux containers are not
+affected, and anyone without that restriction can use a plain virtual environment.
+
+Full instructions, including the approval round trip, are in
+[`poc/README.md`](poc/README.md). The short version, from `poc/`:
 
 ```powershell
 Copy-Item fix_agent\.env.example fix_agent\.env
 ```
+
 ```powershell
 git clone https://github.com/dipesharma29/agentic-ai-sdlc.git workspace\agentic-ai-sdlc
 ```
+
 ```powershell
 docker compose up --build
 ```
 
-Then the chat UI at http://localhost:8000 (pick `fix_agent`), or over the API:
+Then the chat UI at http://localhost:8000, choosing `fix_agent`, or over the API:
 
 ```powershell
 python call_agent.py "The About link on the home page is broken. Fix it."
 ```
+
 ```powershell
 python call_agent.py --approve <session_id>
 ```
 
-## Status — 25 Nov 2026
+To show it to someone without a local setup, `poc/notebooks/fix_agent_colab.ipynb`
+runs the whole loop in Google Colab. Whoever runs it uses their own credentials: a
+Google account with Vertex AI User on `ai-sdlc-515307`, and their own GitHub token in
+their own Colab secrets. Nothing is shared.
 
-New direction from Prachi: **single-agent POC first** — task in, code fix out, through an API
-call. No Jira in the loop yet. Keep it simple, and keep it language-agnostic. The MVP is due
-in about 20 days.
+---
 
-**Fix Agent**
+## Infrastructure
 
-- **Done:** agent and 9 tools; `.agent.json` guardrails; Docker on ADK 2.15.0; sandbox site
-  with planted issues; REST client with the approval round trip.
-- **Verified 25 Nov**, in Docker, without Gemini: all 9 tools passed a simulated run. The
-  agent could not edit before creating a branch, could not touch `tests/` or anything outside
-  the repo, and edits matching more than once were refused. The fix took the sample site's
-  tests from failing to passing, and the commit happened locally.
-- **Verified 25 Nov, live:** the service-account key at `poc/secrets/fix-agent-key.json`
-  authenticates; a real Vertex AI call with `gemini-3.5-flash-lite` at location `global`
-  returned a completion; the `GITHUB_TOKEN` in `poc/fix_agent/.env` authenticates as
-  `dipesharma29` with push rights on this repo, so it can create branches and open PRs.
-- **Done 25 Nov, end to end:** a plain-language task became a merged pull request. The
-  agent branched, diagnosed, fixed, took the suite from 2 failures to 0, paused for
-  approval and opened [PR #1](https://github.com/dipesharma29/agentic-ai-sdlc/pull/1).
-  It also fixed a second, unasked-for bug — see [STATE.md](docs/STATE.md).
-- **Not done:** more than one task, in one language, in one run. Scope control is the
-  open question now, not capability.
+- **GCP project:** `ai-sdlc-515307`. Verified working by an actual call, not assumed:
+  the service-account key authenticates, the Vertex AI API answers, and
+  `gemini-3.5-flash-lite` at location `global` returns a completion.
+- **Service account:** `fix-agent@ai-sdlc-515307.iam.gserviceaccount.com`, role Vertex
+  AI User. Its key belongs at `poc/secrets/fix-agent-key.json`, which is git-ignored.
+  Get it from the project owner; never commit or paste it.
+- **Jira:** project KAN on `itmcsystems-team-r6zdxryt.atlassian.net`. Sample tickets
+  only, and not yet wired into the Fix Agent.
+
+---
+
+## Status
+
+A plain-language task has gone end to end: the agent branched, diagnosed the problem,
+fixed it, took the test suite from failing to passing, paused for approval, and opened
+[pull request #1](https://github.com/dipesharma29/agentic-ai-sdlc/pull/1), since merged.
+
+It also fixed a second bug it had not been asked about. Both changes were correct, but
+the scope was wider than the request, and only the diff showed that. The cause and the
+decision it needs are written up in [docs/STATE.md](docs/STATE.md) and
+[docs/TODO.md](docs/TODO.md).
+
+What is not yet proven: more than one task, more than one language, and scope control.
+Capability is no longer the open question; predictability is.
+
+---
 
 ## Parked: Requirements Agent
 
-A vague request or meeting transcript, plus the existing Java code (spring-petclinic), becomes
-a user story that says where the change belongs. A human approves the story before it is saved.
+A vague request or a meeting transcript, together with existing Java code
+(spring-petclinic), becomes a user story that says where the change belongs. A human
+approves the story before it is saved.
 
-- **Done:** repo layout, agent code (v1 uses local code search instead of RAG), Docker setup
-  (ADK 2.15.0; agent loads, tools tested), Jira sample tickets, PetClinic fork and clone,
-  JDK 21, service notes.
-- **Not done:** RAG comparison, Agent Engine / Cloud Run deployment, the agent's own Jira
-  token. Model calls are no longer blocked — Vertex AI works on this project (see above) —
-  but the Requirements Agent has not been run against it.
+Built: the repository layout, the agent and its tools (local keyword search rather than
+RAG), the Docker setup, Jira sample tickets, the PetClinic fork and clone, JDK 21.
+Not built: a RAG comparison, deployment to Agent Engine or Cloud Run, and the agent's
+own Jira credentials. Model calls are no longer blocked, but it has not been run
+against Vertex AI.
 
 To run it, from `prototype/`: `docker compose up --build`, then
-http://localhost:8000 and pick `requirements_agent`. Teammates without the Smart App Control
-block can use a plain venv instead: `pip install -r prototype/requirements.txt`, then
-`adk web` from `prototype/`.
+http://localhost:8000 and choose `requirements_agent`.

@@ -1,7 +1,15 @@
 # Testing the Fix Agent yourself
 
-The repeatable loop for giving the agent a bug and checking it honestly.
-First proven end to end on 25 Nov 2026 — see [STATE.md](STATE.md).
+The repeatable loop for giving the agent a bug and checking its work honestly.
+For what has already been proven, see [STATE.md](STATE.md).
+
+This is about testing the agent's *behaviour*, which needs a model and costs money.
+Its *guardrails* are covered by a suite that needs neither, and that is the thing to
+run after changing `tools.py`:
+
+```powershell
+python -m unittest discover -s poc/tests -q
+```
 
 ---
 
@@ -150,7 +158,8 @@ A mismatch means step 3 was missed.
 
 - **Three agents appear in the list.** ADK scans recursively and finds the copies inside
   the clone. Always pick the plain `fix_agent`.
-- **Your `main` is red while a planted bug sits on it.** Fine mid-experiment; do not leave
-  it there before a demo.
-- **The sandbox is green again.** Both originally planted issues have now been fixed, so a
-  new run needs a bug you plant yourself.
+- **The sample site's suite is red while a planted bug sits on `main`.** That is the
+  intended state between demonstrations, and it is why CI does not run that suite. CI
+  runs the guardrail tests and lint, which should always be green.
+- **A planted bug is used up once the agent fixes it.** After a successful run and merge,
+  plant a fresh one before the next demonstration.

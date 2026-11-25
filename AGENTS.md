@@ -10,7 +10,7 @@ Instructions for AI coding agents working **on** this repository.
 
 ---
 
-## Orientation in 30 seconds
+## Orientation
 
 | | |
 |---|---|
@@ -50,10 +50,15 @@ git clone https://github.com/dipesharma29/agentic-ai-sdlc.git poc\workspace\agen
 | Chat UI | http://localhost:8000 → pick `fix_agent` |
 | Send a task | `cd poc; python call_agent.py "<task>"` |
 | Approve / reject | `python call_agent.py --approve <session_id>` |
-| Sandbox tests | `python -m unittest discover -s poc/sample_site/tests -q` |
+| Guardrail tests | `python -m unittest discover -s poc/tests -q` |
+| Lint | `ruff check .` |
+| Sample-site tests | `python -m unittest discover -s poc/sample_site/tests -q` |
 | Reload after `.env` edits | `docker compose up -d --force-recreate` |
 
-There is no test suite for the agent's own tools yet. See [TODO.md](docs/TODO.md).
+The guardrail suite needs nothing installed — `tools.py` runs on the standard library
+alone and the suite loads it directly. CI runs it, and `ruff`, on every push and pull
+request. It does not run the sample-site suite: a bug is planted there on purpose
+before a demonstration, so a red result is the expected state.
 
 ---
 
@@ -98,8 +103,8 @@ the same judgement to any repo. If a test looks wrong, say so and stop.
 ### 6. Secrets never enter the repo or a model's context
 
 `poc/secrets/`, `*-key.json` and `.env` are git-ignored. Do not print token or key values,
-do not paste them into prompts, and do not add them to `.env.example` — that file is
-committed, and a real token once ended up in it.
+do not paste them into prompts, and never put a real value in `.env.example` — that file
+is committed. Placeholders only.
 
 ---
 
@@ -118,11 +123,12 @@ committed, and a real token once ended up in it.
 
 ## Before you call it done
 
-1. The sandbox test command still runs and the planted bug still fails
-   (`1 failure` is correct — see [STATE.md](docs/STATE.md)).
-2. `poc/fix_agent/tools.py` still imports with the stdlib alone.
-3. The guardrails still refuse: traversal, editing without a branch, protected paths,
-   paths outside `editable_paths`.
+1. `python -m unittest discover -s poc/tests -q` passes. That is the guardrails —
+   traversal, the branch requirement, protected paths, `editable_paths`, exact-match
+   edits, and `run_tests` running only `test_command`.
+2. `ruff check .` is clean.
+3. The sample-site command still runs, and a planted bug still fails if one is planted
+   (see [STATE.md](docs/STATE.md) for the current baseline).
 4. [STATE.md](docs/STATE.md) updated if what is built or verified changed.
 5. **Say what you did not verify.** An unverified claim stated as fact costs the next
    person the time to discover it. This repo has been wrong about its own status before.

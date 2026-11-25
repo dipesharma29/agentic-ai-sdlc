@@ -1,99 +1,88 @@
-# TODO
+# What is next
 
-Ordered by what unblocks the most. Status lives in [STATE.md](STATE.md).
+Ordered by what unblocks the most. Current status lives in [STATE.md](STATE.md).
 
-**Deadline:** MVP ~20 days from 25 Nov 2026.
-
----
-
-## 1. ~~First end-to-end run~~ — done 25 Nov 2026
-
-Merged as PR #1. See [STATE.md](STATE.md) for what it did, including the part nobody
-asked for.
+**Target date:** MVP approximately 20 days from 25 November 2026.
 
 ---
 
-## 2. Decide what the agent should do about unrelated failures
+## 1. Decide what the agent does about unrelated failures
 
-The 25 Nov run fixed a second, unasked-for bug because its baseline already had a failing
-test and its instruction tells it to get to green. Pick one and make the instruction say it:
+The first live run fixed a second, unasked-for bug, because its baseline already
+had a failing test and its instruction tells it to reach green. Pick one of these
+and make the instruction say only that:
 
-- [ ] **Narrow:** fix only what the task names; report other failures without touching them.
-      Safer for review, but it will leave a red suite and may confuse its own verification
-- [ ] **Broad:** get the suite green and list everything it changed. Fewer reruns, wider
-      diffs, more for a human to check
-- [ ] Either way, the instruction must stop saying both at once
+- [ ] **Narrow.** Fix what the task names; report other failures without touching
+      them. Safer to review, but it leaves a red suite and complicates the agent's
+      own verification.
+- [ ] **Broad.** Reach green and list everything changed. Fewer repeat runs, wider
+      diffs, more for a human to check.
 
-## 2b. Restore a planted bug for demos
+Either way, the instruction must stop asserting both at once.
 
-Both original sandbox issues are now fixed and the suite is green, so there is nothing to
-demonstrate against.
+## 2. A second task against the same repository
 
-- [ ] Plant a fresh one under `poc/sample_site/`, with a test that catches it
-- [ ] Or keep a `demo/planted-bugs` branch to cherry-pick from
+Proves the first run was not a one-line fluke.
 
-## 3. Second task, same repo
+- [ ] *"Make the contact form's email field required and only accept valid email
+      addresses."*
+- [ ] No test covers this yet, so the agent has to write one. That exercises
+      `create_file`, which the first run never touched.
+- [ ] Watch for the failure that matters: weakening a test to reach green. It is
+      blocked by `protected_paths`, and the guardrail suite asserts the refusal, so
+      confirm the agent handles the refusal sensibly rather than looping on it.
 
-Proves it was not a one-line fluke. The planted issue is already there:
-
-- [ ] *"Make the contact form's email field required and only accept valid email addresses."*
-- [ ] No test covers this yet — the agent must add one, which exercises `create_file`
-- [ ] Watch for the failure mode that matters: editing a test to go green. It is blocked by
-      `protected_paths`, so confirm the refusal is what stops it
-
----
-
-## 4. A test suite for the agent's own tools
-
-The 25 Nov guardrail check was done by hand. It cannot be re-run, so a refactor could
-quietly remove a guardrail.
-
-- [ ] Tests for: containment, `editable_paths`, `protected_paths`, exact-match edits,
-      branch requirement, `run_tests` only running `test_command`
-- [ ] Stdlib `unittest`, so the container needs nothing new
-- [ ] Each one should *try the attack* and assert the refusal
-
----
-
-## 5. A second language
+## 3. A second language
 
 The design's central claim, still untested.
 
-- [ ] Point `TARGET_REPO` at the spring-petclinic fork
-- [ ] Give that repo an `.agent.json` with `["./mvnw", "-q", "test"]`
-- [ ] Add a JDK to `poc/Dockerfile` — noted in the file already
-- [ ] Expect `search_code` to be slow on a large repo; measure before optimising
+- [ ] Point `TARGET_REPO` at the spring-petclinic fork.
+- [ ] Give that repository an `.agent.json` with `["./mvnw", "-q", "test"]`.
+- [ ] Add a JDK to `poc/Dockerfile`; the file already notes where.
+- [ ] Expect `search_code` to be slow on a large repository. Measure before
+      optimising.
+
+## 4. Run the Colab notebook end to end
+
+Every cell compiles and the ADK shapes were checked against 2.15.0, but nobody has
+taken it through a complete run in Colab yet.
+
+- [ ] Grant the reviewer **Vertex AI User** on `ai-sdlc-515307` and collaborator
+      access on the repository.
+- [ ] Confirm a planted bug is live on `main` first, or the notebook has nothing to
+      demonstrate against.
 
 ---
 
-## 6. Loose ends
+## Known issues
 
-- [ ] Delete the leftover `.env.example` at the repo root — untracked duplicate of
-      `poc/fix_agent/.env.example`, and the file a real token once ended up in
-- [ ] **Rotate the GitHub token.** It sat in a non-git-ignored file; treat it as exposed
-- [ ] **The agent's clone goes stale.** `create_branch` does `git checkout <base>` with no
-      fetch, so `poc/workspace/agentic-ai-sdlc` keeps branching from the `main` it was
-      cloned at. Once PRs start merging, that drifts: the agent could re-fix something or
-      raise a conflicting PR. Either `git -C poc/workspace/agentic-ai-sdlc pull` before each
-      run, or make `create_branch` fetch first
-- [ ] **The agent list shows three agents, not one.** `adk web` scans `/app/poc`
-      recursively and finds the copies inside the clone, so `/list-apps` returns
-      `fix_agent`, `workspace.agentic-ai-sdlc.poc.fix_agent` and
-      `workspace.agentic-ai-sdlc.prototype.requirements_agent`. Always pick the plain
-      `fix_agent`. Moving `workspace/` out of `poc/` would stop it
-- [ ] `commit_and_open_pr` has no retry if the push succeeds and the PR call fails. It now
-      reports `pushed: True` so nothing is lost, but a human has to finish by hand
-- [ ] `docs/POC_Fix_Agent_Design.md` still describes a separate `agent-poc-sandbox` repo;
-      the POC now targets this repo instead
+- [ ] **Rotate the GitHub token.** It was written into a loose file on disk that was
+      not covered by `.gitignore`. It never entered a commit — the history has been
+      checked — but it should be treated as exposed and replaced.
+- [ ] **The agent's clone goes stale.** `create_branch` checks out the base branch
+      without fetching, so `poc/workspace/agentic-ai-sdlc` keeps branching from the
+      commit it was cloned at. Once pull requests start merging, that drifts, and the
+      agent could re-fix something already fixed or raise a conflicting change. Either
+      pull before each run, or make `create_branch` fetch first.
+- [ ] **The agent list shows three entries, not one.** `adk web` scans `/app/poc`
+      recursively and finds the copies inside the clone, so it offers `fix_agent`,
+      `workspace.agentic-ai-sdlc.poc.fix_agent` and
+      `workspace.agentic-ai-sdlc.prototype.requirements_agent`. Always choose the plain
+      `fix_agent`. Moving `workspace/` out of `poc/` would stop it.
+- [ ] **`commit_and_open_pr` has no retry** if the push succeeds and the pull-request
+      call fails. It reports `pushed: true` so no work is lost, but a human has to
+      finish by hand.
+- [ ] **`docs/POC_Fix_Agent_Design.md` is a design record**, written before the POC
+      was built. It describes intent at that point, not the current shape.
 
 ---
 
-## Not now, and why
+## Deliberately not doing yet
 
-| Idea | Why not yet |
+| Idea | Why not |
 |---|---|
-| Jira in the loop | Out of scope for the POC. Revisit after an end-to-end run |
-| RAG / vector store | Keyword search has not failed. Wait for it to |
-| Cloud Run / Agent Engine | Laptop Docker is enough to prove the idea |
-| A second agent | The brief says one. Adding one hides which part failed |
-| Letting the agent merge | Never. The human gate is the point |
+| Jira in the loop | Out of scope for the POC |
+| RAG or a vector store | Keyword search has not failed yet. Wait until it does |
+| Cloud Run or Agent Engine | Local Docker is enough to prove the idea |
+| A second agent | The brief asks for one. A second hides which part failed |
+| Letting the agent merge | Never. The human gate is the point of the design |
