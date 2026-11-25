@@ -14,10 +14,13 @@ import json
 import os
 import re
 import subprocess
+import urllib.error
 import urllib.request
 from pathlib import Path
 
-REPO = Path(os.getenv("TARGET_REPO", "/app/poc/workspace/agent-poc-sandbox")).resolve()
+# Default matches poc/docker-compose.yml and fix_agent/.env.example. A wrong path here
+# surfaces as "Target repo has no .agent.json" on the first tool call.
+REPO = Path(os.getenv("TARGET_REPO", "/app/poc/workspace/agentic-ai-sdlc")).resolve()
 SKIP_DIRS = {".git", "node_modules", "target", "build", "dist", "__pycache__", ".venv"}
 MAX_READ_LINES = 400
 TEST_TIMEOUT_SECONDS = int(os.getenv("TEST_TIMEOUT_SECONDS", "300"))
@@ -62,6 +65,18 @@ def _current_branch() -> str:
     return _git("rev-parse", "--abbrev-ref", "HEAD").stdout.strip()
 
 
+def _repo_id() -> str:
+    """Which checkout, at which commit. Attached to every empty or missing result.
+
+    The agent works on a clone at TARGET_REPO, not on the human's working tree.
+    When someone edits their own copy and the agent says "no such problem", both
+    are telling the truth about different files. Saying where we looked turns a
+    confusing disagreement into an obvious one.
+    """
+    head = _git("rev-parse", "--short", "HEAD").stdout.strip() or "unknown"
+    return f"{REPO} @ {head} ({_current_branch() or 'unknown'})"
+
+
 # ---------- read ----------
 
 def list_files(sub_path: str = "") -> dict:
@@ -100,6 +115,11 @@ def search_code(keywords: str, max_results: int = 30) -> dict:
             if hits:
                 scored.append((hits, f"{rel}:{n}: {line.strip()[:200]}"))
     scored.sort(key=lambda s: -s[0])
+    if not scored:
+        return {"status": "success", "matches": [], "truncated": False,
+                "searched": _repo_id(),
+                "note": "No match in the target repo. If a human says it is there, they may "
+                        "be looking at a different checkout, or the change is uncommitted."}
     return {"status": "success", "matches": [m for _, m in scored[:max_results]],
             "truncated": len(scored) > max_results}
 
@@ -113,7 +133,9 @@ def read_file(path: str) -> dict:
     try:
         target = _inside_repo(path)
         lines = target.read_text(encoding="utf-8").splitlines()
-    except (PermissionError, FileNotFoundError, UnicodeDecodeError, IsADirectoryError) as e:
+    except FileNotFoundError:
+        return {"status": "error", "message": f"No such file in {_repo_id()}: {path}"}
+    except (PermissionError, UnicodeDecodeError, IsADirectoryError) as e:
         return {"status": "error", "message": str(e)}
     numbered = "\n".join(f"{i:4}| {l}" for i, l in enumerate(lines[:MAX_READ_LINES], 1))
     return {"status": "success", "path": path, "total_lines": len(lines), "content": numbered}
@@ -239,6 +261,17 @@ def commit_and_open_pr(title: str, body: str) -> dict:
         data=json.dumps({"title": title, "body": body, "head": branch,
                          "base": os.getenv("BASE_BRANCH", "main")}).encode(),
         headers={"Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json"})
-    with urllib.request.urlopen(req, timeout=30) as resp:
-        pr = json.loads(resp.read())
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            pr = json.loads(resp.read())
+    except urllib.error.HTTPError as e:
+        # The branch is already pushed, so say so: the work is not lost and a
+        # human can open the PR by hand. Common causes: a PR already exists for
+        # this branch, or the token lacks pull-request write access.
+        detail = e.read().decode("utf-8", "replace")[:300].replace(token, "***")
+        return {"status": "error", "pushed": True, "branch": branch,
+                "message": f"Pushed, but GitHub refused the pull request ({e.code}): {detail}"}
+    except urllib.error.URLError as e:
+        return {"status": "error", "pushed": True, "branch": branch,
+                "message": f"Pushed, but could not reach GitHub: {str(e.reason)[:200]}"}
     return {"status": "success", "branch": branch, "pr_url": pr.get("html_url")}
