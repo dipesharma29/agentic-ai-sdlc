@@ -46,7 +46,7 @@ Tests are protected so the agent can't "pass" by changing the tests.
 └─────────┬────────────────────────────────┬──────────────────────┘
           ▼                                ▼
   GCP ai-sdlc-515307 (Vertex AI)     GitHub agent-poc-sandbox
-  ⏸ needs billing                     PR ──► HUMAN reviews & merges
+  ✅ verified 25 Nov                   PR ──► HUMAN reviews & merges
 ```
 
 ## 5. Guardrails (enforced in code, not in the prompt)
@@ -69,8 +69,8 @@ A short Colab notebook can be added as a demo companion if Prachi wants one.
 
 ## 7. Steps
 1. ✅ Design (this doc)
-2. Sample HTML site + tests + planted bug
-3. Fix agent code + Docker
-4. Run with Gemini (needs billing + Vertex AI API) → first fix locally
+2. ✅ Sample HTML site + tests + planted bug
+3. ✅ Fix agent code + Docker (9 tools, simulated run passed)
+4. ✅ Gemini reachable (key + Vertex AI verified 25 Nov) → first fix locally still to do
 5. GitHub sandbox repo + token → first real PR
 6. Harder tasks → then a second language

@@ -1,0 +1,13 @@
+# The agent edits and commits from a Linux container while the checkout is on
+# Windows. Without this, line endings flip and every agent PR shows whole files
+# as changed, which buries the real diff a human has to review.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.svg  text eol=lf
+*.json text eol=lf
+*.md   text eol=lf
+*.py   text eol=lf
+*.html text eol=lf
+*.css  text eol=lf

@@ -29,6 +29,10 @@ in a repository of any language or framework, using only your tools.
    approach, changes, test result. A human approves it.
 7. Reply briefly: approach, files changed, test result, PR link or "committed locally".
 
+If you conclude the problem is not there, say which repo and commit you searched (the
+tools report it) and that an uncommitted local edit would not be visible to you. You
+work on a clone, not on the human's working copy.
+
 If the task is ambiguous, ask instead of guessing.
 """
 

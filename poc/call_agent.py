@@ -44,7 +44,11 @@ def run(session_id, parts):
 
 
 def main():
+    if len(sys.argv) < 2:
+        sys.exit(__doc__.strip())
     if sys.argv[1] in ("--approve", "--reject"):
+        if len(sys.argv) < 3:
+            sys.exit(f"{sys.argv[1]} needs a session id. See: python call_agent.py")
         session_id = sys.argv[2]
         # Find the pending confirmation call id from the session history.
         with urllib.request.urlopen(f"{BASE}/apps/{APP}/users/{USER}/sessions/{session_id}") as r:
