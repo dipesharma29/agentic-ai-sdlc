@@ -6,25 +6,33 @@ Ordered by what unblocks the most. Status lives in [STATE.md](STATE.md).
 
 ---
 
-## 1. The one thing that matters — first end-to-end run
+## 1. ~~First end-to-end run~~ — done 25 Nov 2026
 
-Everything it needs is verified working. Nothing external is blocking.
-
-- [ ] Start Docker Desktop, then `cd poc; docker compose up --build`
-- [ ] `python call_agent.py "The About link on the home page is broken. Fix it."`
-- [ ] Watch it: branch → explore → baseline tests → edit → tests pass → diff → ask
-- [ ] Approve, and confirm a **real PR** appears on `dipesharma29/agentic-ai-sdlc`
-- [ ] Record the result in STATE.md — including what it got wrong
-
-**Done means:** `abuot.html` → `about.html`, the sandbox suite goes 1 failure → 0, no test
-file touched, and a human approved before anything was pushed.
-
-If the model struggles, the first suspects are the instruction in `agent.py` and the tool
-docstrings — not the guardrails.
+Merged as PR #1. See [STATE.md](STATE.md) for what it did, including the part nobody
+asked for.
 
 ---
 
-## 2. Second task, same repo
+## 2. Decide what the agent should do about unrelated failures
+
+The 25 Nov run fixed a second, unasked-for bug because its baseline already had a failing
+test and its instruction tells it to get to green. Pick one and make the instruction say it:
+
+- [ ] **Narrow:** fix only what the task names; report other failures without touching them.
+      Safer for review, but it will leave a red suite and may confuse its own verification
+- [ ] **Broad:** get the suite green and list everything it changed. Fewer reruns, wider
+      diffs, more for a human to check
+- [ ] Either way, the instruction must stop saying both at once
+
+## 2b. Restore a planted bug for demos
+
+Both original sandbox issues are now fixed and the suite is green, so there is nothing to
+demonstrate against.
+
+- [ ] Plant a fresh one under `poc/sample_site/`, with a test that catches it
+- [ ] Or keep a `demo/planted-bugs` branch to cherry-pick from
+
+## 3. Second task, same repo
 
 Proves it was not a one-line fluke. The planted issue is already there:
 
@@ -35,7 +43,7 @@ Proves it was not a one-line fluke. The planted issue is already there:
 
 ---
 
-## 3. A test suite for the agent's own tools
+## 4. A test suite for the agent's own tools
 
 The 25 Nov guardrail check was done by hand. It cannot be re-run, so a refactor could
 quietly remove a guardrail.
@@ -47,7 +55,7 @@ quietly remove a guardrail.
 
 ---
 
-## 4. A second language
+## 5. A second language
 
 The design's central claim, still untested.
 
@@ -58,7 +66,7 @@ The design's central claim, still untested.
 
 ---
 
-## 5. Loose ends
+## 6. Loose ends
 
 - [ ] Delete the leftover `.env.example` at the repo root — untracked duplicate of
       `poc/fix_agent/.env.example`, and the file a real token once ended up in

@@ -15,7 +15,7 @@ Read this before resuming work; trust it over the READMEs.
 | Parked | Requirements Agent — `prototype/` |
 | Deadline | MVP in ~20 days from 25 Nov 2026 (Prachi) |
 | Blocking | Nothing external. Docker Desktop must be running |
-| Outstanding claim | **No model-driven run has gone end to end.** No PR has ever been opened by the agent |
+| Outstanding claim | **Closed 25 Nov** — a model-driven run went end to end and merged as PR #1 |
 
 ---
 
@@ -67,13 +67,13 @@ was done by hand, not by a suite that can be re-run.
 
 ## Not proven
 
-1. **No end-to-end model-driven run.** Every prerequisite checks out, but no task has gone
-   from plain language through to an opened pull request. This is the one thing left.
-2. **No PR has ever been opened** by `commit_and_open_pr` against GitHub. The push and PR
-   path is written and was exercised only as a local commit.
-3. **`search_code` reads every file in the repo** on each call. Fine for the 30-file
+1. **Only one task, one language, one run.** A single success is not a measurement.
+2. **The second planted task was never attempted** — the contact form's email field, which
+   has no test and would require the agent to write one.
+3. **Scope control is unproven.** The one real run fixed more than it was asked to.
+4. **`search_code` reads every file in the repo** on each call. Fine for the 30-file
    sandbox; untested on anything large.
-4. **Only one language proven.** The design claims language-agnosticism and the mechanism
+5. **Only one language proven.** The design claims language-agnosticism and the mechanism
    supports it, but only the Python/unittest sandbox has been run.
 
 ---
@@ -94,6 +94,29 @@ Found by reading the code and verified by running it:
   checkout; without it every agent PR shows whole files as changed and buries the real diff.
 
 ---
+
+## First end-to-end run — 25 Nov 2026
+
+Task: *"The about page has a malformed closing tag. Find it and fix it."* A `</htmll>` typo
+was planted in `about.html`, committed and pushed, and pulled into the clone.
+
+The agent branched `agent/fix-about-page-malformed-tag`, found it, fixed it, took the suite
+from 2 failures to 0, paused for approval, and opened
+[PR #1](https://github.com/dipesharma29/agentic-ai-sdlc/pull/1), since merged.
+
+**It also fixed a bug nobody asked for.** The diff changed two files: `about.html`
+(`</htmll>` → `</html>`, the task) and `index.html` (`abuot.html` → `about.html`, the
+pre-existing planted link). Both fixes are correct and the agent's report was accurate, but
+the scope was wider than the task.
+
+The cause is a tension in its instruction: *"Change what the task needs, nothing unrelated"*
+against *"run_tests. On failure, diagnose from the output and fix."* With an unrelated
+failure already in the baseline, the agent cannot tell its job from "make the suite green".
+Worth deciding deliberately — see [TODO.md](TODO.md).
+
+**Both originally planted sandbox issues are now fixed**, so the suite is green (4 tests,
+OK) and any further run needs a freshly planted bug. See
+[TESTING_THE_AGENT.md](TESTING_THE_AGENT.md).
 
 ## The trap this setup has
 
