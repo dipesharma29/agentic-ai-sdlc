@@ -25,6 +25,7 @@ them yourself.
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | How the Fix Agent works and why it is shaped that way |
 | [`docs/TODO.md`](docs/TODO.md) | What is next, in order |
 | [`docs/TESTING_THE_AGENT.md`](docs/TESTING_THE_AGENT.md) | How to plant a bug and test the agent yourself |
+| [`poc/notebooks/fix_agent_colab.ipynb`](poc/notebooks/fix_agent_colab.ipynb) | Run the whole demo in Google Colab — no install, no Docker |
 | `poc/` | **The Fix Agent.** Agent, tools, sandbox target, Docker, REST client |
 | `poc/fix_agent/` | `agent.py` and `tools.py` — 9 tools behind guardrails |
 | `poc/sample_site/` | The sandbox the agent is allowed to edit: small HTML site + tests |

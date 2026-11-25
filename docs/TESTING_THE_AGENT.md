@@ -5,6 +5,30 @@ First proven end to end on 25 Nov 2026 — see [STATE.md](STATE.md).
 
 ---
 
+## Showing it to someone else
+
+`poc/notebooks/fix_agent_colab.ipynb` runs the whole loop in Google Colab, with no install
+and no Docker. Docker is a workaround for Windows Smart App Control on one laptop, not an
+ADK requirement; Colab is Linux, so `pip install google-adk` is enough.
+
+Whoever runs it uses **their own** credentials, never yours:
+
+- GCP through `auth.authenticate_user()`, so they need **Vertex AI User** on
+  `ai-sdlc-515307`. No key is shared, and the spend is attributable to them.
+- GitHub through a token in **their** Colab secrets, so they need collaborator access.
+
+Open it with:
+
+```
+https://colab.research.google.com/github/dipesharma29/agentic-ai-sdlc/blob/main/poc/notebooks/fix_agent_colab.ipynb
+```
+
+The repo is private, so the first time they must tick *Include private repos* when Colab
+asks to connect to GitHub.
+
+**It needs a planted bug on `main` to be worth running.** The suite being green means the
+notebook has nothing to demonstrate.
+
 ## Three rules a task must satisfy
 
 Get one wrong and the run fails in a way that looks like the agent is broken.
