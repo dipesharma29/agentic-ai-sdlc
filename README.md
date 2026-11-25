@@ -24,6 +24,7 @@ them yourself.
 | [`AGENTS.md`](AGENTS.md) | Rules and commands for anyone (human or AI) working on this repo |
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | How the Fix Agent works and why it is shaped that way |
 | [`docs/TODO.md`](docs/TODO.md) | What is next, in order |
+| [`docs/TESTING_THE_AGENT.md`](docs/TESTING_THE_AGENT.md) | How to plant a bug and test the agent yourself |
 | `poc/` | **The Fix Agent.** Agent, tools, sandbox target, Docker, REST client |
 | `poc/fix_agent/` | `agent.py` and `tools.py` — 9 tools behind guardrails |
 | `poc/sample_site/` | The sandbox the agent is allowed to edit: small HTML site + tests |
@@ -115,10 +116,12 @@ in about 20 days.
   authenticates; a real Vertex AI call with `gemini-3.5-flash-lite` at location `global`
   returned a completion; the `GITHUB_TOKEN` in `poc/fix_agent/.env` authenticates as
   `dipesharma29` with push rights on this repo, so it can create branches and open PRs.
-- **Not done:** an end-to-end run driven by the model. Every prerequisite now checks out, but
-  no task has been taken from plain language through to an opened pull request, and no PR has
-  ever been opened by the agent. That is the next thing to do, and the only claim still
-  outstanding.
+- **Done 25 Nov, end to end:** a plain-language task became a merged pull request. The
+  agent branched, diagnosed, fixed, took the suite from 2 failures to 0, paused for
+  approval and opened [PR #1](https://github.com/dipesharma29/agentic-ai-sdlc/pull/1).
+  It also fixed a second, unasked-for bug — see [STATE.md](docs/STATE.md).
+- **Not done:** more than one task, in one language, in one run. Scope control is the
+  open question now, not capability.
 
 ## Parked: Requirements Agent
 
