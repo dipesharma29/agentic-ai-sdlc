@@ -1,0 +1,12 @@
+services:
+  adk:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      # Whole project (agent code, inputs, workspace/spring-petclinic).
+      - ..:/app
+      # Google credentials from `gcloud auth application-default login` on Windows.
+      - ${APPDATA}/gcloud:/root/.config/gcloud:ro
+    env_file:
+      - ./requirements_agent/.env
