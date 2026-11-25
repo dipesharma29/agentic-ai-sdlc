@@ -1,0 +1,4 @@
+{
+  "test_command": ["python", "-m", "unittest", "discover", "-s", "tests", "-q"],
+  "protected_paths": [".agent.json", "tests/", ".github/", ".git/"]
+}

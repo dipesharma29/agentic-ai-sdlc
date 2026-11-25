@@ -1,0 +1,15 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+workspace/
+.adk/
+poc/workspace/
+
+# Private material (stays on Dipesh's machine only)
+sources/
+prototype/inputs/*.vtt
+
+# Service account keys (never commit)
+poc/secrets/
+*-key.json
