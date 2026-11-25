@@ -1,0 +1,48 @@
+name: CI
+
+# The agent cannot change this file: `.github/` is listed in protected_paths in
+# the root .agent.json, so the checks that judge its work are out of its reach.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install ruff==0.17.6
+      - run: ruff check .
+
+  guardrails:
+    name: Guardrail tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # No pip install step: poc/fix_agent/tools.py must run on the standard
+      # library alone, and the suite loads it directly. If this job ever needs
+      # a dependency, that rule has been broken.
+      - name: Run the guardrail suite
+        run: python -m unittest discover -s poc/tests -v
+
+  # The sample site's own suite is deliberately not run here. It is the target
+  # the agent practises on, and a bug is planted in it on purpose before a demo,
+  # so a red result there is the expected state rather than a broken build.
